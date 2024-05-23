@@ -9,6 +9,15 @@ format: html
 Instalación de sf
 install.packages("sf")
 
+Instalación de leaflet
+install.packages("leaflet")
+
+Instalación de leaflet.extras (funciones adicionales de leaflet)
+install.packages("leaflet.extras")
+
+Instalación de leaflem (funciones adicionales de leaflet)
+install.packages("leafem")
+
 # Carga de paquetes
 
 ```{r}
@@ -17,6 +26,9 @@ install.packages("sf")
 #| warning: false
 
 library(sf)
+library(leaflet)
+library(leaflet.extras)
+library(leafem)
 ```
 
 # Carga de datos
@@ -26,21 +38,110 @@ library(sf)
 #| message: false
 #| warning: false
 
-provincias <- st_read("provincias.geojson")
+provincias <- 
+  st_read("provincias.geojson", quiet = TRUE)
+
+felidos <-
+  st_read(
+    "felidos.csv",
+    quiet = TRUE,
+    options = c(
+      "X_POSSIBLE_NAMES=decimalLongitude", 
+      "Y_POSSIBLE_NAMES=decimalLatitude"   
+    )
+  )
+```
+
+# Sistemas de coordenadas
+
+```{r}
+#| label: crs-1
+#| message: false
+#| warning: false
+
+# Asignación del CRS WGS84 (EPSG 4326) al objeto felidos
+
+st_crs(felidos) <- 4326
+```
+
+```{r}
+#| label: crs-2
+#| message: false
+#| warning: false
+
+# Transformación del CRS de provincias a WGS84 (EPSG 4326)
+
+provincias <-
+  provincias |>
+  st_transform(4326)
 ```
 
 # Mapeo
 
 ```{r}
-#| label: mapeo-vectoriales
+#| label: mapeo-vectoriales-1
+#| message: false
+#| warning: false
 
-plot(provincias$geometry)
+plot(
+  provincias$geometry,
+  extent = st_bbox(c(xmin = -86.0, xmax = -82.3, ymin = 8.0, ymax = 11.3)),
+  main = "Provincias de Costa Rica",
+  axes = TRUE,
+  graticule = TRUE
+)
 ```
 
+```{r}
+#| label: mapeo-vectoriales-2
+#| message: false
+#| warning: false
+
+# Primera capa del mapa
+plot(
+  provincias$geometry,
+  extent = st_bbox(c(xmin = -86.0, xmax = -82.3, ymin = 8.0, ymax = 11.3)),
+  main = "Registros de presencia de félidos en Costa Rica",
+  axes = TRUE,
+  graticule = TRUE,
+  reset = FALSE
+)
+
+# Segunda capa
+plot(felidos$geometry,
+     add = TRUE,     
+     pch = 16,
+     col = "blue")
+```
+
+# Escritura
+
+```{r}
+#| label: st_write
+#| message: false
+#| warning: false
 
 
+provincias |>
+  st_write("provincias.gpkg", delete_dsn = TRUE, quiet = TRUE)
 
+```
 
+# Mapa leaflet
+
+```{r}
+#| label: mapa-leaflet
+
+leaflet() |>
+  setView(
+    lng = -84,
+    lat = 10,
+    zoom = 7
+  ) |>
+  addTiles(group = "OMS") |>
+  addProviderTiles(providers$Esri.NatGeoWorldMap) |>
+  addProviderTiles(providers$Esri.WorldImagery)
+```
 
 
 
