@@ -1,0 +1,61 @@
+---
+title: "Introducción al manejo de datos espaciales en R"
+author: "Nayely Araya Valerin"
+format: html
+---
+
+# Instalar paquetes
+
+Instalación de sf
+install.packages("sf")
+
+# Carga de paquetes
+
+```{r}
+#| label: carga_paquetes
+#| message: false
+#| warning: false
+
+library(sf)
+```
+
+# Carga de datos
+
+```{r}
+#| label: carga_datos
+#| message: false
+#| warning: false
+
+provincias <- st_read("provincias.geojson")
+```
+
+# Mapeo
+
+```{r}
+#| label: mapeo-vectoriales
+
+plot(provincias$geometry)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
