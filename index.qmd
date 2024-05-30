@@ -2,6 +2,9 @@
 title: "Introducción al manejo de datos espaciales en R"
 author: "Nayely Araya Valerin"
 format: html
+toc: true
+lang: es
+theme: yeti
 ---
 
 # Instalar paquetes
@@ -18,6 +21,9 @@ install.packages("leaflet.extras")
 Instalación de leaflem (funciones adicionales de leaflet)
 install.packages("leafem")
 
+Instalación de terra
+install.packages("terra")
+
 # Carga de paquetes
 
 ```{r}
@@ -29,6 +35,7 @@ library(sf)
 library(leaflet)
 library(leaflet.extras)
 library(leafem)
+library(terra)
 ```
 
 # Carga de datos
@@ -47,9 +54,12 @@ felidos <-
     quiet = TRUE,
     options = c(
       "X_POSSIBLE_NAMES=decimalLongitude", 
-      "Y_POSSIBLE_NAMES=decimalLatitude"   
-    )
-  )
+      "Y_POSSIBLE_NAMES=decimalLatitude"))
+
+# Carga-datos-raster
+
+altitud <-
+  rast("altitud.tif")
 ```
 
 # Sistemas de coordenadas
@@ -130,7 +140,61 @@ provincias |>
 # Mapa leaflet
 
 ```{r}
-#| label: mapa-leaflet
+#| label: mapa-leaflet1
+#| message: false
+#| warning: false
+
+leaflet() |>
+  setView(
+    lng = -84,
+    lat = 10,
+    zoom = 7) |>
+  addTiles(group = "OMS") |>
+  addProviderTiles(providers$Esri.NatGeoWorldMap, group = "National Geographic") |>
+  addProviderTiles(providers$Esri.WorldImagery, group = "Imágenes satelitales (ESRI World Imagery)") |>
+  addPolygons(
+    data = provincias,
+    color = "red",
+    fillColor = "transparent",
+    stroke = TRUE,
+    weight = 1.0,
+    group = "Provincias") |>
+  addCircleMarkers(
+    data = felidos,
+    stroke = FALSE,
+    radius = 3,
+    fillColor = "turquoise",
+    fillOpacity = 0.8,
+      popup = paste(
+      paste0("<strong>Especie: </strong>", felidos$species),
+      paste0("<strong>Localidad: </strong>", felidos$locality),
+      paste0("<strong>Fecha: </strong>", felidos$eventDate),
+      paste0("<strong>Fuente: </strong>", felidos$institutionCode),
+      paste0("<a href='", felidos$occurrenceID, "'>Más información</a>"),
+      sep = '<br/>'),
+    group = "Félidos") |>
+  addLayersControl(
+    baseGroups = c("OMS", "Imágenes satelitales (ESRI World Imagery)", "National Geographic"),
+    overlayGroups = c("Provincias", "Félidos")) |>
+  addResetMapButton() |>
+  addSearchOSM() |> 
+  addMouseCoordinates() |> 
+  addScaleBar(
+    position = "bottomleft", 
+    options = scaleBarOptions(imperial = FALSE)) |> 
+  addMiniMap(position = "bottomright") |>
+  addFullscreenControl() 
+```
+
+```{r}
+#| label: mapa-leaflet2
+#| message: false
+#| warning: false
+
+colores_altitud <-
+  colorNumeric(terrain.colors(25),
+               values(altitud),
+               na.color = "transparent")
 
 leaflet() |>
   setView(
@@ -139,10 +203,86 @@ leaflet() |>
     zoom = 7
   ) |>
   addTiles(group = "OMS") |>
-  addProviderTiles(providers$Esri.NatGeoWorldMap) |>
-  addProviderTiles(providers$Esri.WorldImagery)
+  addProviderTiles(providers$Esri.NatGeoWorldMap, group = "National Geographic") |>
+  addProviderTiles(providers$Esri.WorldImagery, group = "Imágenes satelitales (ESRI World Imagery)"
+  ) |>
+  addRasterImage(
+    altitud,
+    colors = colores_altitud, 
+    opacity = 0.6,
+    group = "Altitud",
+  ) |>
+  addLegend(
+    title = "Altitud",
+    values = values(altitud),
+    pal = colores_altitud,
+    position = "bottomleft",
+    group = "Altitud"
+  ) |>
+  addPolygons(
+    data = provincias,
+    color = "red",
+    fillColor = "transparent",
+    stroke = TRUE,
+    weight = 1.0,
+    group = "Provincias"
+  ) |>
+  addCircleMarkers(
+    data = felidos,
+    stroke = FALSE,
+    radius = 3,
+    fillColor = "turquoise",
+    fillOpacity = 0.8,
+      popup = paste(
+      paste0("<strong>Especie: </strong>", felidos$species),
+      paste0("<strong>Localidad: </strong>", felidos$locality),
+      paste0("<strong>Fecha: </strong>", felidos$eventDate),
+      paste0("<strong>Fuente: </strong>", felidos$institutionCode),
+      paste0("<a href='", felidos$occurrenceID, "'>Más información</a>"),
+      sep = '<br/>'),
+    group = "Félidos"
+  ) |>
+  addLayersControl(
+    baseGroups = c("OMS", "Imágenes satelitales (ESRI World Imagery)", "National Geographic"),
+    overlayGroups = c("Provincias", "Félidos", "Altitud")
+    ) |>
+  addResetMapButton() |>
+  addSearchOSM() |> 
+  addMouseCoordinates() |> 
+  addScaleBar(
+    position = "bottomleft", 
+    options = scaleBarOptions(imperial = FALSE)
+    ) |> 
+  addMiniMap(position = "bottomright"
+             ) |>
+  addFullscreenControl() 
 ```
 
+# Graficos raster
+
+```{r}
+#| label: plot-raster1
+
+plot(altitud)
+```
+
+```{r}
+#| label: plot-raster2
+
+# Primera capa del mapa (raster)
+plot(
+  altitud,
+  main = "Registros de presencia de félidos en Costa Rica",
+  axes = TRUE,
+  reset = FALSE
+)
+
+# Segunda capa (vectorial)
+plot(felidos$geometry,
+     add = TRUE,     
+     pch = 16,
+     col = "blue")
+```
 
 
 
